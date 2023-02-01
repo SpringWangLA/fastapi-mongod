@@ -10,9 +10,10 @@ client = motor.motor_asyncio.AsyncIOMotorClient(MONGO_DETAILS)
 print('Connected to DB...')
 
 database = client.students
+functional_db = client.ft
 
 student_collection = database.get_collection("students_collection")
-
+ft_collection = functional_db.get_collection("ft1")
 #helpers
 
 def student_helper(student) -> dict:
@@ -25,6 +26,15 @@ def student_helper(student) -> dict:
         "GPA": student["gpa"],
     }
 
+def result_helper(result) -> dict:
+    return {
+        **{
+            "id": str(result["_id"])
+        },
+        **{
+            key:value for (key,value) in result.items() if key != "_id"
+        }
+    }
 
 # Retrieve all students present in the database
 async def retrieve_students():
@@ -68,4 +78,25 @@ async def delete_student(id: str):
     student = await student_collection.find_one({"_id": ObjectId(id)})
     if student:
         await student_collection.delete_one({"_id": ObjectId(id)})
+        return True
+
+# Create a randomly data
+async def add_test_result(test_result: dict) -> dict:
+
+    result = await ft_collection.insert_one(test_result)
+    new_result = await ft_collection.find_one({"_id": result.inserted_id})
+    return result_helper(new_result)
+    
+# Retrieve all random data present in the database
+async def retrieve_test_results():
+    results = []
+    async for result in ft_collection.find():
+        results.append(result_helper(result))
+    return results
+
+# Delete a student from the database
+async def delete_test_result(id: str):
+    result = await ft_collection.find_one({"_id": ObjectId(id)})
+    if result:
+        await ft_collection.delete_one({"_id": ObjectId(id)})
         return True
